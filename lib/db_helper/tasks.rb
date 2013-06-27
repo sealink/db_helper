@@ -125,7 +125,7 @@ namespace :db do
   desc 'Create sandbox'
   task :create_sandbox do
     default_sandboxes_base_dir = SandboxManager.default_sandboxes_base_dir
-    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandbox_base_dir}):", default_value: default_sandbox_base_dir)
+    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
     sm = SandboxManager.new(sandboxes_dir)
     ports = sm.ports
     sandboxes = ports.keys.sort_by { |sandbox| ports[sandbox] }
@@ -157,7 +157,7 @@ namespace :db do
   desc 'Change sandbox port'
   task :change_sandbox_port do
     default_sandboxes_base_dir = SandboxManager.default_sandboxes_base_dir
-    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandbox_base_dir}):", default_value: default_sandbox_base_dir)
+    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
     sm = SandboxManager.new(sandboxes_dir)
 
     change_port = true
@@ -199,7 +199,7 @@ namespace :db do
   desc 'Remove sandbox'
   task :remove_sandbox do
     default_sandboxes_base_dir = SandboxManager.default_sandboxes_base_dir
-    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandbox_base_dir}):", default_value: default_sandbox_base_dir)
+    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
     sm = SandboxManager.new(sandboxes_dir)
     ports = sm.ports
     selection_proc = ->(sandbox) { "#{sandbox.foreground(:cyan)}: #{ports[sandbox].foreground(:green)}" }

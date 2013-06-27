@@ -9,7 +9,7 @@ class SandboxManager
   end
 
 
-  def self.default_sandbox_base_dir
+  def self.default_sandboxes_base_dir
     configuration = Rails.configuration.database_configuration[Rails.env]
     suffixes = Rails.configuration.database_configuration.keys
     current_db = configuration['database']
