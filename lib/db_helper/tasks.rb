@@ -49,8 +49,15 @@ namespace :db do
   
   desc "Import remote database from hot backup into sandbox"
   task :update_sandbox do
-    configuration = Rails.configuration.database_configuration[Rails.env]
-    suffixes = Rails.configuration.database_configuration.keys
+    if defined?(Rails)
+      db_config = Rails.configuration.database_configuration
+      env = Rails.env
+    else
+      db_config = YAML::load(File.read(ENV['YML']))
+      env = ENV['ENV']
+    end
+    configuration = db_config[ENV['ENV'] || Rails.env]
+    suffixes = db_config.keys
     default_db = configuration['database']
 
     while suffix = suffixes.pop
