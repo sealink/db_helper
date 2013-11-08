@@ -137,7 +137,7 @@ class SqlImporter
     [data_file_name + ".gz", structure_file_name].compact.each_with_index do |f, index|
       command "scp -P #{ssh_port} #{ssh_user}@#{ssh_host}:/tmp/#{f} #{f}"
       command("ssh -p #{ssh_port} #{ssh_user}@#{ssh_host} \"rm /tmp/#{f}\"")
-      command "gunzip #{f}" if f.ends_with?('.gz')
+      command "gunzip #{f}" if f.end_with?('.gz')
     end
 
     puts "3. Importing SQL files..."

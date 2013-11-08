@@ -6,9 +6,9 @@ class Sandbox
   end
 
   def import(file)
-    if file.ends_with?('tar.gz')
+    if file.end_with?('tar.gz')
       import_innobackup(file)
-    elsif file.ends_with?('sql.gz')
+    elsif file.end_with?('sql.gz')
       import_sql(file)
     else
       raise "Unrecognised file format for #{file}."
