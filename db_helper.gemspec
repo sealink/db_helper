@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'input_reader'
-  spec.add_dependency 'active_support'
+  spec.add_dependency 'activesupport'
   spec.add_dependency 'sys-proctable'
   spec.add_dependency 'parseconfig'
   spec.add_development_dependency "bundler", "~> 1.3"
