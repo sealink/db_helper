@@ -91,7 +91,7 @@ namespace :db do
     raise "No backup files found" if backup_files.empty?
     backup_file_path = InputReader.select_item(backup_files, prompt: "Select backup file:")
 
-    command "cp #{File.join(backup_file_path)} #{sandbox_dir}"
+    command "rsync -avP #{File.join(backup_file_path)} #{sandbox_dir}"
 
     backup_file = File.basename(backup_file_path)
 
