@@ -70,7 +70,9 @@ namespace :db do
 
     default_backup_dir = 'latest'
     backup_dir = InputReader.get_string(prompt: "Backup directory (#{default_backup_dir}):", default_value: default_backup_dir)
-    default_hot_backup_dir = File.join('','media','backup','mysql',"#{db}","#{backup_dir}")
+    backup_db = InputReader.get_string(prompt: "Backup database (#{db}):", default_value: db)
+    default_hot_backup_dir_base = File.join('','media','backup','mysql')
+    default_hot_backup_dir = File.join(default_hot_backup_dir_base, "#{backup_db}", "#{backup_dir}")
     hot_backup_dir = InputReader.get_string(prompt: "Backup path (#{default_hot_backup_dir}):", default_value: default_hot_backup_dir)
     raise "#{hot_backup_dir} is not a valid path" unless File.directory?(hot_backup_dir)
 
