@@ -46,17 +46,17 @@ namespace :db do
     #  puts "Error: #{e.message}"
     end
   end
-  
+
   desc "Import remote database from hot backup into sandbox"
   task :update_sandbox do
-    if defined?(Rails)
-      db_config = Rails.configuration.database_configuration
-      env = Rails.env
-    else
-      db_config = YAML::load(File.read(ENV['YML']))
-      env = ENV['ENV']
-    end
-    configuration = db_config[ENV['ENV'] || Rails.env]
+
+    db_config, env = if defined?(Rails)
+                       [Rails.configuration.database_configuration, Rails.env]
+                     else
+                       [YAML::load(File.read(ENV['YML'])), ENV['ENV']]
+                     end
+
+    configuration = db_config[env]
     suffixes = db_config.keys
     default_db = configuration['database']
 
