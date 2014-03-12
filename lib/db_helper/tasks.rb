@@ -47,6 +47,7 @@ namespace :db do
     end
   end
 
+  # TODO : Clean up this mess.
   desc "Import remote database from hot backup into sandbox"
   task :update_sandbox do
 
