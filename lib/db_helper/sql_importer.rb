@@ -24,8 +24,7 @@ class SqlImporter
     sandbox_dir = selected['sandbox_dir']
     #command "mkdir #{sandbox_dir}/data.new && cd #{sandbox_dir}/data.new"
     #command "cp #{selected['hot_backup_dir']}/*.tar.gz #{sandbox_dir}/data.new/remote-hot-backup.tar.gz"
-    #command "cd #{sandbox_dir}/data.new && tar -ixzf remote-hot-backup.tar.gz"
-    command "innobackupex --defaults-file=#{sandbox_dir}/my.sandbox.cnf --apply-log #{sandbox_dir}/data.new"
+    #command "cd #{sandbox_dir}/data.new && tar -xzf remote-hot-backup.tar.gz"
     command "#{sandbox_dir}/stop"
     command "rm -rf #{sandbox_dir}/data"
     command "mv #{sandbox_dir}/data.new #{sandbox_dir}/data"

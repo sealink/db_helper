@@ -30,9 +30,8 @@ class Sandbox
     command File.join(@dir,'start')
     command "mkdir #{data_new}"
     command "mv #{File.join(@dir, file)} #{File.join(data_new, file)}"
-    command "cd #{data_new} && tar -ixzf #{file}"
+    command "cd #{data_new} && tar -xzf #{file}"
     command "rm #{File.join(data_new, file)}"
-    command "innobackupex --defaults-file=#{File.join(@dir,'my.sandbox.cnf')} --apply-log #{data_new}"
     command File.join(@dir,'stop')
     command "rm -rf #{File.join(@dir,'data')}"
     command "mv #{data_new} #{File.join(@dir,'data')}"
