@@ -8,9 +8,9 @@ Gem::Specification.new do |spec|
   spec.version       = DbHelper::VERSION
   spec.authors       = ["Michael Noack"]
   spec.email         = ["michael@noack.com.au"]
-  spec.description   = %q{TODO: Write a gem description}
-  spec.summary       = %q{TODO: Write a gem summary}
-  spec.homepage      = ""
+  spec.description   = "Database rake tasks for rails apps"
+  spec.summary       = "Extracted rake tasks from large rails apps"
+  spec.homepage      = "https://github.com/sealink/db_helper"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
