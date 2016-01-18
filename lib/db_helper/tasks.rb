@@ -24,7 +24,7 @@ namespace :db do
       num_selected = InputReader.get_int(prompt: 'Enter Choice: ', valid_values: (1..sources.count).to_a)
       selected = sources.values[num_selected - 1]
 
-      importer = SqlImporter.new(selected, default)
+      importer = DbHelper::SqlImporter.new(selected, default)
       importer.backup
 
       post_execution_commands = Array.wrap(selected.has_key?('post_execution_commands')  ? selected['post_execution_commands'] : default['post_execution_commands'])
@@ -39,7 +39,6 @@ namespace :db do
           end
         end
       end
-    
 
       puts "Done"
     #rescue Exception => e
@@ -77,7 +76,7 @@ namespace :db do
     hot_backup_dir = InputReader.get_string(prompt: "Backup path (#{default_hot_backup_dir}):", default_value: default_hot_backup_dir)
     raise "#{hot_backup_dir} is not a valid path" unless File.directory?(hot_backup_dir)
 
-    sandbox_proc = Sys::ProcTable.ps.find { |p| p.comm == 'mysqld' && 
+    sandbox_proc = Sys::ProcTable.ps.find { |p| p.comm == 'mysqld' &&
       ( p.respond_to?(:cwd) ? p.cwd.to_s.include?(default_db) : p.cmdline.include?(default_db)
       ) }
 
@@ -98,7 +97,7 @@ namespace :db do
 
     backup_file = File.basename(backup_file_path)
 
-    sandbox = Sandbox.new(sandbox_dir)
+    sandbox = DbHelper::Sandbox.new(sandbox_dir)
     sandbox.import(backup_file)
   end
 
@@ -120,7 +119,7 @@ namespace :db do
     database_config_file = File.join(config_dir,"database.yml")
     command "cp #{selected_database_config_file} #{database_config_file}"
     puts "Swapped database config file"
-    
+
     if InputReader.get_boolean(:prompt => "Start #{database} sandbox server? (Y/N):")
       default_sandbox_base_dir = File.join('','home','projects','db')
       sandbox_base_dir = InputReader.get_string(:prompt => "Sandbox base directory (#{default_sandbox_base_dir}):", :default_value => default_sandbox_base_dir)
@@ -134,9 +133,9 @@ namespace :db do
 
   desc 'Create sandbox'
   task :create_sandbox do
-    default_sandboxes_base_dir = SandboxManager.default_sandboxes_base_dir
+    default_sandboxes_base_dir = DbHelper::SandboxManager.default_sandboxes_base_dir
     sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
-    sm = SandboxManager.new(sandboxes_dir)
+    sm = DbHelper::SandboxManager.new(sandboxes_dir)
     ports = sm.ports
     sandboxes = ports.keys.sort_by { |sandbox| ports[sandbox] }
 
@@ -166,9 +165,9 @@ namespace :db do
 
   desc 'Change sandbox port'
   task :change_sandbox_port do
-    default_sandboxes_base_dir = SandboxManager.default_sandboxes_base_dir
+    default_sandboxes_base_dir = DbHelper::SandboxManager.default_sandboxes_base_dir
     sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
-    sm = SandboxManager.new(sandboxes_dir)
+    sm = DbHelper::SandboxManager.new(sandboxes_dir)
 
     change_port = true
     while change_port do
@@ -208,9 +207,9 @@ namespace :db do
 
   desc 'Remove sandbox'
   task :remove_sandbox do
-    default_sandboxes_base_dir = SandboxManager.default_sandboxes_base_dir
+    default_sandboxes_base_dir = DbHelper::SandboxManager.default_sandboxes_base_dir
     sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
-    sm = SandboxManager.new(sandboxes_dir)
+    sm = DbHelper::SandboxManager.new(sandboxes_dir)
     ports = sm.ports
     selection_proc = ->(sandbox) { "#{sandbox.foreground(:cyan)}: #{ports[sandbox].foreground(:green)}" }
     sandboxes = ports.keys.sort_by { |sandbox| ports[sandbox] }
@@ -225,6 +224,4 @@ namespace :db do
     end
   end
 
-
 end
-
