@@ -12,7 +12,8 @@ namespace :db do
   desc "Copy and import a remote database to a local database"
   task :import_from_remote do
     begin
-      sources = YAML::load(File.open(File.join(ENV['RAILS_ROOT'] || '.', File.join('config','database_import.yml'))))
+      path = File.join(ENV['RAILS_ROOT'] || '.', 'config', 'db_helper_import_from_remote.yml')
+      sources = YAML::load(File.open(path))
       default = sources.delete('default') || {:db => {}}
 
       puts "Select database?"
