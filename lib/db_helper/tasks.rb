@@ -11,50 +11,52 @@ include Sys
 namespace :db do
   desc "Copy and import a remote database to a local database"
   task :import_from_remote do
-    begin
-      path = File.join(ENV['RAILS_ROOT'] || '.', 'config', 'db_helper_import_from_remote.yml')
-      sources = YAML::load(File.open(path))
-      default = sources.delete('default') || {:db => {}}
+    root = ENV['RAILS_ROOT'] || '.'
+    path = File.join(root, 'config', 'db_helper_import_from_remote.yml')
+    sources = YAML.load(File.open(path))
+    default = sources.delete('default') || {db: {}}
 
-      puts "Select database?"
+    puts "Select database?"
 
-      sources.values.each.with_index do |source,i|
-        puts "#{i + 1}. #{source['name']}"
-      end
+    sources.values.each.with_index do |source,i|
+      puts "#{i + 1}. #{source['name']}"
+    end
 
-      num_selected = InputReader.get_int(prompt: 'Enter Choice: ', valid_values: (1..sources.count).to_a)
-      selected = sources.values[num_selected - 1]
+    num_selected = InputReader.get_int(prompt: 'Enter Choice: ',
+                                       valid_values: (1..sources.count).to_a)
+    selected = sources.values[num_selected - 1]
 
-      importer = DbHelper::SqlImporter.new(selected, default)
-      importer.backup
+    importer = DbHelper::SqlImporter.new(selected, default)
+    importer.backup
 
-      post_execution_commands = Array.wrap(selected.has_key?('post_execution_commands')  ? selected['post_execution_commands'] : default['post_execution_commands'])
+    key = 'post_execution_commands'
+    post_execution_commands = Array.wrap(selected.fetch(key, default[key]))
 
-      if !post_execution_commands.empty?
-        puts "Post execution commands"
-        post_execution_commands.each.with_index { |c,i| puts "#{i + 1}. #{c}" }
-        if InputReader.get_boolean(:prompt => "Run post execution commands (careful what you do, the command strings will be evaluated and executed!) (y/n)?")
-          puts "Running post execution commands"
-          post_execution_commands.each do |c|
-            eval c
-          end
+    if !post_execution_commands.empty?
+      puts "Post execution commands"
+      post_execution_commands.each.with_index { |c,i| puts "#{i + 1}. #{c}" }
+      prompt = <<-PROMPT
+        Run post execution commands (careful what you do, the command strings
+        will be evaluated and executed!) (y/n)?
+      PROMPT
+      if InputReader.get_boolean(prompt: prompt)
+        puts "Running post execution commands"
+        post_execution_commands.each do |c|
+          eval c
         end
       end
-
-      puts "Done"
-    #rescue Exception => e
-    #  puts "Error: #{e.message}"
     end
+
+    puts "Done"
   end
 
   # TODO : Clean up this mess.
   desc "Import remote database from hot backup into sandbox"
   task :update_sandbox do
-
     db_config, env = if defined?(Rails)
                        [Rails.configuration.database_configuration, Rails.env]
                      else
-                       [YAML::load(File.read(ENV['YML'])), ENV['ENV']]
+                       [YAML.load(File.read(ENV['YML'])), ENV['ENV']]
                      end
 
     configuration = db_config[env]
@@ -67,19 +69,34 @@ namespace :db do
 
     backup_db = default_db.gsub('_','-')
 
-    db = InputReader.get_string(prompt: "Database (#{backup_db}):", default_value: backup_db)
+    db = InputReader.get_string(prompt: "Database (#{backup_db}):",
+                                default_value: backup_db)
 
     default_backup_dir = 'latest'
-    backup_dir = InputReader.get_string(prompt: "Backup directory (#{default_backup_dir}):", default_value: default_backup_dir)
-    backup_db = InputReader.get_string(prompt: "Backup database (#{db}):", default_value: db)
+    backup_dir = InputReader.get_string(
+                   prompt: "Backup directory (#{default_backup_dir}):",
+                   default_value: default_backup_dir)
+    backup_db = InputReader.get_string(
+                   prompt: "Backup database (#{db}):",
+                   default_value: db)
     default_hot_backup_dir_base = File.join('','media','backup','mysql')
-    default_hot_backup_dir = File.join(default_hot_backup_dir_base, "#{backup_db}", "#{backup_dir}")
-    hot_backup_dir = InputReader.get_string(prompt: "Backup path (#{default_hot_backup_dir}):", default_value: default_hot_backup_dir)
-    raise "#{hot_backup_dir} is not a valid path" unless File.directory?(hot_backup_dir)
+    default_hot_backup_dir = File.join(default_hot_backup_dir_base, backup_db, backup_dir)
+    hot_backup_dir = InputReader.get_string(
+                       prompt: "Backup path (#{default_hot_backup_dir}):",
+                       default_value: default_hot_backup_dir)
+    unless File.directory?(hot_backup_dir)
+      raise "#{hot_backup_dir} is not a valid path"
+    end
 
-    sandbox_proc = Sys::ProcTable.ps.find { |p| p.comm == 'mysqld' &&
-      ( p.respond_to?(:cwd) ? p.cwd.to_s.include?(default_db) : p.cmdline.include?(default_db)
-      ) }
+    sandbox_proc = Sys::ProcTable.ps.find { |p|
+      p.comm == 'mysqld' && (
+        if p.respond_to?(:cwd)
+          p.cwd.to_s.include?(default_db)
+        else
+          p.cmdline.include?(default_db)
+        end
+      )
+    }
 
     default_sandbox_dir = if sandbox_proc
                             sandbox_proc.cwd.gsub(File.join('','data'),'')
@@ -87,12 +104,17 @@ namespace :db do
                             File.join('','db',db)
                           end
 
-    sandbox_dir = InputReader.get_string(prompt: "Sandbox path (#{default_sandbox_dir}):", default_value: default_sandbox_dir)
-    raise "#{sandbox_dir} is not a valid path" unless File.directory?(sandbox_dir)
+    sandbox_dir = InputReader.get_string(
+                    prompt: "Sandbox path (#{default_sandbox_dir}):",
+                    default_value: default_sandbox_dir)
+    unless File.directory?(sandbox_dir)
+      raise "#{sandbox_dir} is not a valid path"
+    end
 
     backup_files = Dir[File.join(hot_backup_dir,'*.gz')]
     raise "No backup files found" if backup_files.empty?
-    backup_file_path = InputReader.select_item(backup_files, prompt: "Select backup file:")
+    backup_file_path = InputReader.select_item(backup_files,
+                                               prompt: "Select backup file:")
 
     command "rsync -avP #{File.join(backup_file_path)} #{sandbox_dir}"
 
@@ -110,22 +132,28 @@ namespace :db do
   desc "Swap database config files"
   task :swap_config do
     databases = []
-    config_dir = Dir.new(File.join(Rails.root,'config'))
+    config_dir = Dir.new(File.join(Rails.root, 'config'))
     config_dir.each do |f|
       match = f.scan(/database\.(.*)\.yml/).presence
       databases << match.flatten.first if match
     end
-    database = InputReader.select_item(databases, :prompt => "Select database:")
+    database = InputReader.select_item(databases, prompt: "Select database:")
     selected_database_config_file = File.join(config_dir,"database.#{database}.yml")
     database_config_file = File.join(config_dir,"database.yml")
     command "cp #{selected_database_config_file} #{database_config_file}"
     puts "Swapped database config file"
 
-    if InputReader.get_boolean(:prompt => "Start #{database} sandbox server? (Y/N):")
+    if InputReader.get_boolean(prompt: "Start #{database} sandbox server? (Y/N):")
       default_sandbox_base_dir = File.join('','home','projects','db')
-      sandbox_base_dir = InputReader.get_string(:prompt => "Sandbox base directory (#{default_sandbox_base_dir}):", :default_value => default_sandbox_base_dir)
+      sandbox_base_dir =
+        InputReader.get_string(
+          prompt: "Sandbox base directory (#{default_sandbox_base_dir}):",
+          default_value: default_sandbox_base_dir)
       default_sandbox_dir = File.join("#{sandbox_base_dir}","#{database}")
-      sandbox_dir = InputReader.get_string(:prompt => "Full sandbox directory (#{default_sandbox_dir}):", :default_value => default_sandbox_dir)
+      sandbox_dir =
+        InputReader.get_string(
+          prompt: "Full sandbox directory (#{default_sandbox_dir}):",
+          default_value: default_sandbox_dir)
       command "#{sandbox_dir}/start"
       puts "Started sandbox server"
     end
@@ -135,7 +163,9 @@ namespace :db do
   desc 'Create sandbox'
   task :create_sandbox do
     default_sandboxes_base_dir = DbHelper::SandboxManager.default_sandboxes_base_dir
-    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
+    sandboxes_dir = InputReader.get_string(
+                      prompt: "Sandboxes path (#{default_sandboxes_base_dir}):",
+                      default_value: default_sandboxes_base_dir)
     sm = DbHelper::SandboxManager.new(sandboxes_dir)
     ports = sm.ports
     sandboxes = ports.keys.sort_by { |sandbox| ports[sandbox] }
@@ -166,8 +196,11 @@ namespace :db do
 
   desc 'Change sandbox port'
   task :change_sandbox_port do
-    default_sandboxes_base_dir = DbHelper::SandboxManager.default_sandboxes_base_dir
-    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
+    default_sandboxes_base_dir =
+      DbHelper::SandboxManager.default_sandboxes_base_dir
+    sandboxes_dir = InputReader.get_string(
+                      prompt: "Sandboxes path (#{default_sandboxes_base_dir}):",
+                      default_value: default_sandboxes_base_dir)
     sm = DbHelper::SandboxManager.new(sandboxes_dir)
 
     change_port = true
@@ -176,9 +209,11 @@ namespace :db do
 
       selection_proc = ->(sandbox) { "#{sandbox.foreground(:cyan)}: #{ports[sandbox].foreground(:green)}" }
       sandboxes = ports.keys.sort_by { |sandbox| ports[sandbox] }
-      selected_sandbox = InputReader.select_item(sandboxes,
-                                                 selection_attribute: selection_proc,
-                                                 prompt: 'Which sandbox port would you like to change?')
+      selected_sandbox =
+        InputReader.select_item(
+          sandboxes,
+          selection_attribute: selection_proc,
+          prompt: 'Which sandbox port would you like to change?')
       path_to_sandbox = File.join(sandboxes_dir, selected_sandbox)
 
       used_ports = ports.values.map(&:to_i)
@@ -208,18 +243,26 @@ namespace :db do
 
   desc 'Remove sandbox'
   task :remove_sandbox do
-    default_sandboxes_base_dir = DbHelper::SandboxManager.default_sandboxes_base_dir
-    sandboxes_dir = InputReader.get_string(prompt: "Sandboxes path (#{default_sandboxes_base_dir}):", default_value: default_sandboxes_base_dir)
+    default_sandboxes_base_dir =
+      DbHelper::SandboxManager.default_sandboxes_base_dir
+    sandboxes_dir = InputReader.get_string(
+                      prompt: "Sandboxes path (#{default_sandboxes_base_dir}):",
+                      default_value: default_sandboxes_base_dir)
     sm = DbHelper::SandboxManager.new(sandboxes_dir)
     ports = sm.ports
     selection_proc = ->(sandbox) { "#{sandbox.foreground(:cyan)}: #{ports[sandbox].foreground(:green)}" }
     sandboxes = ports.keys.sort_by { |sandbox| ports[sandbox] }
-    selected_sandbox = InputReader.select_item(sandboxes,
-                                               selection_attribute: selection_proc,
-                                               prompt: 'Which sandbox would you like to delete?')
+    selected_sandbox = InputReader.select_item(
+                         sandboxes,
+                         selection_attribute: selection_proc,
+                         prompt: 'Which sandbox would you like to delete?')
     path_to_sandbox = File.join(sandboxes_dir, selected_sandbox)
 
-    if InputReader.get_boolean(prompt: "Are you sure you want do delete #{selected_sandbox} sandbox? (y/n):".foreground(:red))
+    delete_sandbox =
+      InputReader.get_boolean(
+        prompt: "Are you sure you want do delete #{selected_sandbox} sandbox? (y/n):".foreground(:red)
+      )
+    if delete_sandbox
       puts "Deleting sandbox #{selected_sandbox}:"
       command "cd #{sandboxes_dir} && sbtool -o delete -s #{path_to_sandbox}"
     end
